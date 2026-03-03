@@ -1,0 +1,12 @@
+Step	Action	Target	Value
+1	OpenBook	.\data\Target.xlsx	
+2	CopyRange	Sheet1!A1:D100	
+3	PasteRange	Result!A1	
+4	Filer	Sheet1!A1:D100	売上>1000000
+5	SaveBook		
+6			
+7			
+8			
+9			
+10			
+11			
