@@ -1,0 +1,114 @@
+RPAエンジン DSL 仕様書（最新版）
+
+RPAエンジン DSL 仕様書(最新版)​
+本仕様書は、​Excel VBA ベースの RPA エンジンにおける DSL(Domain Specific Language)​の文法、​動作仕様、​制御構造、​リソース管理、​ループ処理の仕組みを体系的にまとめたものである。​
+ 
+1. 概要
+DSL は、​Excel 操作・ファイル操作・制御構造を自然言語に近い形で記述できる専用言語である。​本エンジンは、​ActionSheet の各行を逐次解釈し、​必要に応じて行番号ジャンプを行うインタプリタ方式を採用する。​
+ 
+2. 実行モデル
+2.1 行番号ジャンプ方式
+• gRunCmdIdx:​現在実行中のコマンドインデックス(0-based)​
+• gRunCmdIdxNext:​次に実行する行番号(1-based)​
+• RunCommands は Do-While で巡回し、​gRunCmdIdxNext が設定されていればジャンプする。​
+2.2 RunCommands の基本構造
+Do While i <= UBound(cmds)
+   ExecuteAction cmds(i)
+
+   If gRunCmdIdxNext > 0 Then
+       i = gRunCmdIdxNext - 1
+       gRunCmdIdxNext = 0
+   Else
+       i = i + 1
+   End If
+Loop
+ 
+3. リソース管理
+3.1 辞書の初期化ポリシー
+辞書名
+初期化タイミング
+用途
+gLoopStack
+RunCommands 開始時
+ループ状態管理(files, index, startRow)​
+gLoopVars
+RunCommands 開始時
+ループ変数(現在のファイルなど)​
+gVars
+RunCommands 開始時
+通常変数
+gBooks
+必要になったとき
+Workbook 管理
+gSheets
+必要になったとき
+Worksheet 管理
+gRanges
+必要になったとき
+Range 管理
+3.2 Dictionary の安全な扱い
+• .Add を使用する(dict("key") = value は禁止)​
+• 上書きは Remove → Add の2ステップ
+ 
+4. 制御構造
+4.1 If / Else / EndIf
+• 条件判定は EvaluateCondition により実行
+• 行番号ジャンプで制御
+4.2 ForEachFile / NextFile
+フォルダ内のファイルを順次処理するループ構造。​
+ForEachFile の動作
+1. フォルダ内のファイル一覧を収集
+2. ファイル数が 0 の場合はループ開始せず終了
+3. ループ情報(files, index, startRow)​を作成
+4. gLoopStack(loopKey) に登録
+5. gLoopVars(loopKey) に最初のファイルをセット
+NextFile の動作
+6. gLoopStack(loopKey) が存在しなければ何もしない
+7. index を +1
+8. 次のファイルがあれば gLoopVars(loopKey) を更新
+9. なければループ終了(gLoopStack から削除)​
+10. ループ本体の先頭へジャンプ(startRow)​
+startRow の定義
+startRow = ForEachFile 行の次の行
+ 
+5. ForEachFile の仕様
+5.1 基本構文
+ForEachFile {var} C:\path
+   ...処理...
+NextFile {var}
+5.2 巡回対象
+• 現行仕様では ファイルのみ
+• フォルダは含まれない
+• 拡張仕様として以下を追加可能:​
+o フォルダも含める
+o 再帰的に巡回する
+ 
+6. エラー処理
+• 各アクションは Boolean を返し、​失敗時はログを記録
+• 例外発生時は CleanUp によりリソース解放
+• gBooks / gSheets / gRanges は Nothing に戻す
+ 
+7. DSL コマンド一覧(抜粋)​
+コマンド
+説明
+ブックを開く
+Workbook を開き gBooks に登録
+シートを取得する
+gSheets に登録
+範囲を取得する
+gRanges に登録
+ForEachFile
+フォルダ内のファイルを巡回
+NextFile
+次のファイルへ進む
+If / Else / EndIf
+条件分岐
+ 
+8. 今後の拡張案
+• ForEachFolder(フォルダ巡回)​
+• 再帰的ファイル巡回(Recursive)​
+• Break / Continue の追加
+• Try / Catch の導入
+ 
+以上が最新版の DSL 仕様書である。​
+Copilot may make mistakes​
