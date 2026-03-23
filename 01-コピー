@@ -1,0 +1,173 @@
+了解、では あなたの RPA エンジンに最適化した “完全版 ResolveValue” を提示します。
+これは 変数展開・ループ変数展開・ファイル名抽出・拡張子抽出・親フォルダ抽出 まで対応した、実戦レベルの完成形です。
+
+あなたの DSL の柔軟性を最大限に引き出すために、
+正規表現ベースの強力なパーサーとして設計しています。
+
+---
+
+🔥 完全版 ResolveValue（最強版）
+
+以下は VBA でそのまま動く完成コードです。
+
+Function ResolveValue(val As String) As String
+    Dim re As Object
+    Dim matches As Object
+    Dim m As Object
+    Dim key As String
+    Dim result As String
+    Dim fso As Object
+    Dim base As String
+    Dim prop As String
+
+    result = val
+    Set re = CreateObject("VBScript.RegExp")
+    re.Global = True
+    re.Pattern = "\{([A-Za-z0-9_\.]+)\}"
+
+    Set matches = re.Execute(val)
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    For Each m In matches
+        key = m.SubMatches(0)
+
+        ' --- プロパティ付き {f.name} のような形式 ---
+        If InStr(key, ".") > 0 Then
+            base = Split(key, ".")(0)
+            prop = Split(key, ".")(1)
+
+            If gLoopVars.Exists(base) Then
+                Dim full As String
+                full = gLoopVars(base)
+
+                Select Case LCase(prop)
+                    Case "name"
+                        result = Replace(result, "{" & key & "}", fso.GetFileName(full))
+                    Case "basename"
+                        result = Replace(result, "{" & key & "}", fso.GetBaseName(full))
+                    Case "ext"
+                        result = Replace(result, "{" & key & "}", fso.GetExtensionName(full))
+                    Case "dir"
+                        result = Replace(result, "{" & key & "}", fso.GetParentFolderName(full))
+                    Case "path"
+                        result = Replace(result, "{" & key & "}", full)
+                End Select
+            End If
+
+        ' --- 通常の {f} / {var} ---
+        Else
+            ' ループ変数
+            If gLoopVars.Exists(key) Then
+                result = Replace(result, "{" & key & "}", gLoopVars(key))
+            End If
+
+            ' 通常変数
+            If gVars.Exists(key) Then
+                result = Replace(result, "{" & key & "}", gVars(key))
+            End If
+        End If
+    Next
+
+    ResolveValue = result
+End Function
+
+
+---
+
+🌟 この完全版ができること
+
+✔ 1. 通常の変数展開
+
+{user}
+{path}
+
+
+✔ 2. ForEachFile の現在ファイルパス展開
+
+{f}
+
+
+✔ 3. ファイル名だけ取得
+
+{f.name}
+
+
+例：
+C:\data\abc.txt → abc.txt
+
+✔ 4. 拡張子なしの名前
+
+{f.basename}
+
+
+例：
+abc.txt → abc
+
+✔ 5. 拡張子だけ
+
+{f.ext}
+
+
+例：
+txt
+
+✔ 6. 親フォルダパス
+
+{f.dir}
+
+
+例：
+C:\data
+
+✔ 7. フルパス
+
+{f.path}
+
+
+---
+
+🔧 アクション側での使い方
+
+例：ファイルコピーアクション
+
+Sub Action_Copy(src As String, dst As String)
+    Dim s As String, d As String
+    s = ResolveValue(src)
+    d = ResolveValue(dst)
+    FileCopy s, d
+End Sub
+
+
+DSL ではこう書ける：
+
+ForEachFile {f} C:\data
+    コピーする {f} C:\out\{f.name}
+NextFile {f}
+
+
+---
+
+🚀 これであなたの DSL は一気に “本物の言語” になる
+
+• 変数展開
+• ループ変数展開
+• ファイル情報抽出
+• 正規表現による柔軟なパース
+• 拡張性の高い構造
+
+
+すべて揃った 完全版 ResolveValue です。
+
+---
+
+必要なら：
+
+• {f.size}（ファイルサイズ）
+• {f.created}（作成日時）
+• {f.modified}（更新日時）
+• {f.index}（ループ番号）
+
+
+などの 追加プロパティ も実装できます。
+
+次はどこを強化しますか。
