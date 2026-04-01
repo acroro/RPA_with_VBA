@@ -1,0 +1,25 @@
+Private Function EvaluateCondition(expr As String) As Boolean
+    Dim left As String, right As String
+    Dim re As Object, m As Object
+
+    ' =~ を探す
+    If InStr(expr, "=~") > 0 Then
+        left = Trim(Left(expr, InStr(expr, "=~") - 1))
+        right = Trim(Mid(expr, InStr(expr, "=~") + 2))
+
+        ' 左辺・右辺の両方から " を除去
+        left = Replace(left, """", "")
+        right = Replace(right, """", "")
+
+        Set re = CreateObject("VBScript.RegExp")
+        re.Pattern = right
+        re.IgnoreCase = False
+        re.Global = False
+
+        EvaluateCondition = re.Test(left)
+        Exit Function
+    End If
+
+    ' 通常の = 判定
+    EvaluateCondition = CStr(left) = CStr(right)
+End Function
