@@ -1,0 +1,75 @@
+ForEachHref {h} "//a[@href]"
+    DownloadFile {h}
+NextHref {h}
+
+Public Sub Action_ForEachHref(ByVal loopKey As String, ByVal xpath As String)
+    Dim elems As Collection
+    Dim hrefs As New Collection
+    Dim loopInfo As Object
+    Dim e As Object, h As String
+    Dim nextRow As Long
+
+    ' 1) 変数展開
+    xpath = ResolvePath(xpath)
+    loopKey = NormalizeKey(loopKey)
+
+    ' 2) XPath で要素取得
+    Set elems = IE_FindByXPathDeep(g_IE.Document, xpath)
+
+    ' 3) href を静的リストに変換
+    For Each e In elems
+        h = SafeGetHref(e)
+        If h <> "" Then hrefs.Add h
+    Next
+
+    ' 4) Next の行を取得
+    nextRow = FindMatchingNext(loopKey, "Loop_NextHref", gRunCmdIdx + 1)
+
+    ' 5) 0 件なら Next へジャンプ
+    If hrefs.Count = 0 Then
+        gRunCmdIdxNext = nextRow
+        Exit Sub
+    End If
+
+    ' 6) ループ情報を Dictionary に格納
+    Set loopInfo = CreateObject("Scripting.Dictionary")
+    loopInfo("index") = 1
+    loopInfo("hrefs") = hrefs
+    loopInfo("startRow") = gRunCmdIdx + 1
+    loopInfo("nextRow") = nextRow
+    loopInfo("key") = loopKey
+    loopInfo("loopType") = "href"
+
+    ' 7) スタックに push
+    gLoopStack.Add loopInfo
+
+    ' 8) 最初の href をループ変数にセット
+    gLoopVars(loopKey) = hrefs(1)
+End Sub
+
+Public Sub Action_NextHref(ByVal loopKey As String)
+    Dim loopInfo As Object
+    Dim hrefs As Collection
+    Dim idx As Long
+
+    If gLoopStack.Count = 0 Then Exit Sub
+
+    Set loopInfo = gLoopStack(gLoopStack.Count)
+    If loopInfo("loopType") <> "href" Then Exit Sub
+
+    Set hrefs = loopInfo("hrefs")
+    loopKey = loopInfo("key")
+
+    idx = loopInfo("index") + 1
+
+    If idx > hrefs.Count Then
+        gLoopStack.Remove gLoopStack.Count
+        If gLoopVars.Exists(loopKey) Then gLoopVars.Remove loopKey
+        Exit Sub
+    End If
+
+    loopInfo("index") = idx
+    gLoopVars(loopKey) = hrefs(idx)
+
+    gRunCmdIdxNext = loopInfo("startRow")
+End Sub
